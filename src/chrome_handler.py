@@ -3,7 +3,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException
 from bs4 import BeautifulSoup
 from typing import Optional
 
@@ -21,8 +20,7 @@ class ChromeHandler:
         op.add_argument("--headless")
 
         if browser:
-            self.driver = webdriver.Chrome(
-                CHROME_DRIVER_PATH)
+            self.driver = webdriver.Chrome(CHROME_DRIVER_PATH)
         else:
             self.driver = webdriver.Chrome(
                 CHROME_DRIVER_PATH, options=op
@@ -30,30 +28,29 @@ class ChromeHandler:
 
         self.soup = None
 
-    def __wait__(self, _time: int, key: str, val: Optional[str] = None) -> None:
-        if isinstance(val, str):
-            WebDriverWait(self.driver, _time).until(
-                EC.presence_of_element_located(
-                    (key, val)
-                )
+    def __wait__(self, _time: int, key: str, val: str) -> None:
+        print("Search Element: ({}, {})".format(key, val))
+        WebDriverWait(self.driver, _time).until(
+            EC.presence_of_element_located(
+                (key, val)
             )
+        )
 
     def wait(self,
              _id: Optional[str] = None,
              cl: Optional[str] = None,
              selector: Optional[str] = None,
              _time: int = 30) -> None:
-        if isinstance(_id, str) or isinstance(cl, str) or isinstance(selector, str):
-            params = [
-                (By.ID, _id),
-                (By.CLASS_NAME, cl),
-                (By.CSS_SELECTOR, selector)
-            ]
-            for param in params:
-                if isinstance(param[1], str):
-                    self.__wait__(
-                        _time, *param
-                    )
+        params = [
+            (By.ID, _id),
+            (By.CLASS_NAME, cl),
+            (By.CSS_SELECTOR, selector)
+        ]
+        for param in params:
+            if isinstance(param[1], str):
+                self.__wait__(
+                    _time, param[0], param[1]
+                )
 
     def access(self,
                url: str,
