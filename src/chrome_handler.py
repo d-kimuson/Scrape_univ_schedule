@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from bs4 import BeautifulSoup
+from typing import Optional
 
 from settings import CHROME_DRIVER_PATH
 
@@ -29,7 +30,7 @@ class ChromeHandler:
 
         self.soup = None
 
-    def __wait__(self, _time, key, val=None):
+    def __wait__(self, _time: int, key: str, val: Optional[str] = None) -> None:
         try:
             WebDriverWait(self.driver, _time).until(
                 EC.presence_of_element_located(
@@ -39,7 +40,11 @@ class ChromeHandler:
         except Exception as e:
             print(e)
 
-    def wait(self, _id=None, cl=None, selector=None, _time=30):
+    def wait(self,
+             _id: Optional[str] = None,
+             cl: Optional[str] = None,
+             selector: Optional[str] = None,
+             _time: int = 30) -> None:
         if _id is None and cl is None:
             self.__wait__(_time, key='all')
         else:
@@ -54,16 +59,20 @@ class ChromeHandler:
                         _time, _set[1], _set[0]
                     )
 
-    def access(self, url, _id=None, cl=None, selector=None):
+    def access(self,
+               url: str,
+               _id: Optional[str] = None,
+               cl: Optional[str] = None,
+               selector: Optional[str] = None) -> None:
         self.driver.get(url)
         self.wait(_id=_id, cl=cl, selector=selector)
         self.set_soup()
 
-    def set_soup(self):
+    def set_soup(self) -> None:
         self.soup = BeautifulSoup(
             self.driver.page_source,
             features="html.parser"
         )
 
-    def fin(self):
+    def fin(self) -> None:
         self.driver.quit()
