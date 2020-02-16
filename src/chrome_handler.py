@@ -31,32 +31,28 @@ class ChromeHandler:
         self.soup = None
 
     def __wait__(self, _time: int, key: str, val: Optional[str] = None) -> None:
-        try:
+        if isinstance(val, str):
             WebDriverWait(self.driver, _time).until(
                 EC.presence_of_element_located(
                     (key, val)
                 )
             )
-        except Exception as e:
-            print(e)
 
     def wait(self,
              _id: Optional[str] = None,
              cl: Optional[str] = None,
              selector: Optional[str] = None,
              _time: int = 30) -> None:
-        if _id is None and cl is None:
-            self.__wait__(_time, key='all')
-        else:
+        if isinstance(_id, str) or isinstance(cl, str) or isinstance(selector, str):
             params = [
-                (_id, By.ID),
-                (cl, By.CLASS_NAME),
-                (selector, By.CSS_SELECTOR)
+                (By.ID, _id),
+                (By.CLASS_NAME, cl),
+                (By.CSS_SELECTOR, selector)
             ]
-            for _set in params:
-                if _set[0] is not None:
+            for param in params:
+                if isinstance(param[1], str):
                     self.__wait__(
-                        _time, _set[1], _set[0]
+                        _time, *param
                     )
 
     def access(self,
