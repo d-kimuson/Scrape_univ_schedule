@@ -12,3 +12,6 @@ beautifulsoup4 = "*"
 
 [requires]
 python_version = "3.7"
+
+[scripts]
+start = "bash -c 'mypy . && python main.py'"
