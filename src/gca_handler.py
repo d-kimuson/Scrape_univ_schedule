@@ -56,7 +56,7 @@ class GoogleCalnderHandler:
                   location: Optional[str],
                   ) -> Dict[str, Any]:
         event_param = {
-            'summary': '予定1',
+            'summary': title,
             'location': location,
             'start': {
                 'dateTime': start_datetime.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -67,10 +67,13 @@ class GoogleCalnderHandler:
                 'timeZone': 'Japan',
             },
         }
-        return self.service.events().insert(
+        event = self.service.events().insert(
             calendarId=CALENDER_ID,
             body=event_param
         ).execute()
+
+        print("{} is successfully created".format(event))
+        return event
 
 
 if __name__ == '__main__':
