@@ -50,11 +50,6 @@ class GoogleCalnderHandler:
                                                    singleEvents=True,
                                                    orderBy='startTime').execute()
         return events_result.get('items', [])
-        # if not events:
-        #     print('No upcoming events found.')
-        # for event in events:
-        #     start = event['start'].get('dateTime', event['start'].get('date'))
-        #     print(start, event['summary'])
 
     def add_event(self,
                   title: str,
@@ -79,7 +74,6 @@ class GoogleCalnderHandler:
             body=event_param
         ).execute()
 
-        print("{} is successfully created".format(event))
         return event
 
     @classmethod

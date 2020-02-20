@@ -82,39 +82,49 @@ class Main:
 
         return schedules
 
+    def get_exist_events(self) -> List[Dict[str, Any]]:
+        events = gca_handler.get_events()
+        exist_events: List[Dict[str, Any]] = []
+
+        for event in events:
+            exist_events.append({
+                "title": event['summary'],
+                "start_time": GoogleCalnderHandler.time_text_to_datetime(
+                    event['start']['dateTime']
+                )
+            })
+
+        return exist_events
+
+    def update_gca_schedules(self, schedules: List[Schedule]) -> None:
+        for schedule in schedules:
+            is_duplicate = False
+            for event in self.get_exist_events():
+                if event['title'] == schedule.title and event['start_time'] == schedule.start_time:
+                    is_duplicate = True
+                    break
+
+            if not is_duplicate:
+                res = gca_handler.add_event(
+                    title=schedule.title,
+                    start_datetime=schedule.start_time,
+                    end_datetime=schedule.end_time,
+                    location=schedule.place
+                )
+                print("{} を作成しました")
+            else:
+                print("{} は重複しているのでスキップしました.".format(schedule))
+
+    def run(self) -> None:
+        try:
+            self.login()
+            schedules = self.get_schedules_in_this_month()
+        finally:
+            self.handler.fin()
+
+        self.update_gca_schedules(schedules)
+
 
 if __name__ == "__main__":
     main = Main(browser=True)
-    try:
-        main.login()
-        schedules = main.get_schedules_in_this_month()
-    finally:
-        main.handler.fin()
-
-    exist_events = gca_handler.get_events()
-    events = []
-    for event in exist_events:
-        events.append({
-            "title": event['summary'],
-            "start_time": GoogleCalnderHandler.time_text_to_datetime(
-                event['start']['dateTime']
-            )
-        })
-
-    for schedule in schedules:
-        is_duplicate = False
-        for event in events:
-            if event['title'] == schedule.title and event['start_time'] == schedule.start_time:
-                is_duplicate = True
-                break
-
-        if not is_duplicate:
-            res = gca_handler.add_event(
-                title=schedule.title,
-                start_datetime=schedule.start_time,
-                end_datetime=schedule.end_time,
-                location=schedule.place
-            )
-            print(res)
-        else:
-            print("{} は重複しているのでスキップしました.".format(schedule))
+    main.run()
