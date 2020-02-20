@@ -8,146 +8,9 @@ from typing import Tuple, Dict, List, Any, Optional
 
 from settings import LOGIN_URL, USER_NAME, PASSWORD, XPATHS
 from gca_handler import GoogleCalnderHandler
-
-one_pattern = re.compile("[1-8]限")
-range_pattern = re.compile("[1-8]-[1-8]限")
+from schedules import TERM_TIME_TABLE, Schedule, parse_schedule_text
 
 gca_handler = GoogleCalnderHandler()
-
-
-TERM_TIME_TABLE = {
-    1: {
-        "start": {"hour": 9, "minute": 00},
-        "end": {"hour": 9, "minute": 50},
-    },
-    2: {
-        "start": {"hour": 9, "minute": 50},
-        "end": {"hour": 10, "minute": 40},
-    },
-    3: {
-        "start": {"hour": 10, "minute": 50},
-        "end": {"hour": 11, "minute": 40},
-    },
-    4: {
-        "start": {"hour": 11, "minute": 40},
-        "end": {"hour": 12, "minute": 30},
-    },
-    5: {
-        "start": {"hour": 13, "minute": 20},
-        "end": {"hour": 14, "minute": 10},
-    },
-    6: {
-        "start": {"hour": 14, "minute": 10},
-        "end": {"hour": 15, "minute": 00},
-    },
-    7: {
-        "start": {"hour": 15, "minute": 10},
-        "end": {"hour": 16, "minute": 00},
-    },
-    8: {
-        "start": {"hour": 16, "minute": 00},
-        "end": {"hour": 16, "minute": 50},
-    },
-    9: {
-        "start": {"hour": 17, "minute": 00},
-        "end": {"hour": 17, "minute": 50},
-    },
-    10: {
-        "start": {"hour": 17, "minute": 50},
-        "end": {"hour": 18, "minute": 40},
-    },
-    11: {
-        "start": {"hour": 18, "minute": 50},
-        "end": {"hour": 19, "minute": 40},
-    },
-}
-
-
-class UnivClass:
-    def __init__(self, title: str, start_term: int, year: int,
-                 month: int, day: int, end_term: Optional[int],
-                 place: Optional[str] = None) -> None:
-        self.title = title
-        self.place = place
-        self.start_term = start_term
-        self.end_term = end_term
-
-        if isinstance(end_term, int):
-            self.start_time = datetime(
-                year,
-                month,
-                day,
-                hour=TERM_TIME_TABLE[start_term]['start']['hour'],
-                minute=TERM_TIME_TABLE[start_term]['start']['minute']
-            )
-            self.end_time = datetime(
-                year,
-                month,
-                day,
-                hour=TERM_TIME_TABLE[end_term]['end']['hour'],
-                minute=TERM_TIME_TABLE[end_term]['end']['minute']
-            )
-        else:
-            self.start_time = datetime(
-                year,
-                month,
-                day,
-                hour=TERM_TIME_TABLE[start_term]['start']['hour'],
-                minute=TERM_TIME_TABLE[start_term]['start']['minute']
-            )
-            self.end_time = datetime(
-                year,
-                month,
-                day,
-                hour=TERM_TIME_TABLE[start_term]['end']['hour'],
-                minute=TERM_TIME_TABLE[start_term]['end']['minute']
-            )
-
-    def __repr__(self) -> str:
-        return "{}-{}. {}".format(self.start_term, self.end_term, self.title)
-
-    __str__ = __repr__
-
-
-def parse_schedule_text(schedule_text: str, date: str) -> UnivClass:
-    day_match = re.search("\(.*\)", date)
-    if isinstance(day_match, re.Match):
-        year, month, day = [int(_) for _ in date.replace(
-            day_match.group(), ""
-        ).split("/")]
-    else:
-        # 未対応のフォーマット
-        raise AttributeError("未対応のフォーマット")
-
-    schedule_text = schedule_text.replace("：", ":")
-
-    if ":" in schedule_text:
-        schedule_text = schedule_text.replace(" ", "")
-        time_text, place_text, title_text = schedule_text.split(":")
-
-        ranged_match = range_pattern.search(time_text)
-        end_term: Optional[str] = None
-        if isinstance(ranged_match, re.Match):
-            start_term, end_term = ranged_match.group().replace("限", "").split("-")
-        else:
-            one_match = one_pattern.search(time_text)
-            if isinstance(one_match, re.Match):
-                start_term = one_match.group().replace("限", "").split("-")[0]
-                end_term = None
-            else:
-                raise AttributeError("未対応のフォーマット")
-
-        return UnivClass(
-            title_text,
-            int(start_term),
-            year,
-            month,
-            day,
-            int(end_term) if isinstance(end_term, str) else None,
-            place_text.replace("@", "")
-        )
-    else:
-        raise AttributeError("未対応のフォーマット")
 
 
 class Main:
@@ -194,13 +57,13 @@ class Main:
             "schedules": schedules
         }
 
-    def get_schedules_in_this_month(self) -> List[UnivClass]:
+    def get_schedules_in_this_month(self) -> List[Schedule]:
         table_lines = self.handler.driver \
             .find_element_by_xpath(XPATHS['schedule_table']) \
             .find_element_by_tag_name('tbody') \
             .find_elements_by_tag_name('tr')
 
-        schedules: List[UnivClass] = []
+        schedules: List[Schedule] = []
 
         for table_line in table_lines:
             link_to_each_day = table_line.find_elements_by_class_name('day')
@@ -228,11 +91,30 @@ if __name__ == "__main__":
     finally:
         main.handler.fin()
 
+    exist_events = gca_handler.get_events()
+    events = []
+    for event in exist_events:
+        events.append({
+            "title": event['summary'],
+            "start_time": GoogleCalnderHandler.time_text_to_datetime(
+                event['start']['dateTime']
+            )
+        })
+
     for schedule in schedules:
-        res = gca_handler.add_event(
-            title=schedule.title,
-            start_datetime=schedule.start_time,
-            end_datetime=schedule.end_time,
-            location=schedule.place
-        )
-        print(res)
+        is_duplicate = False
+        for event in events:
+            if event['title'] == schedule.title and event['start_time'] == schedule.start_time:
+                is_duplicate = True
+                break
+
+        if not is_duplicate:
+            res = gca_handler.add_event(
+                title=schedule.title,
+                start_datetime=schedule.start_time,
+                end_datetime=schedule.end_time,
+                location=schedule.place
+            )
+            print(res)
+        else:
+            print("{} は重複しているのでスキップしました.".format(schedule))

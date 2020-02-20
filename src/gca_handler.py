@@ -1,11 +1,11 @@
 from __future__ import print_function
-import datetime
 import pickle
 import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-from typing import Optional, Dict, Any
+from datetime import datetime, timedelta
+from typing import Optional, Dict, List, Any
 
 from settings import CALENDER_ID
 
@@ -37,9 +37,9 @@ class GoogleCalnderHandler:
 
         self.service = build('calendar', 'v3', credentials=creds)
 
-    def get_events(self, calender_id: str = CALENDER_ID, result_num: int = 10) -> None:
-        now = datetime.datetime.now()
-        now_time_text = datetime.datetime(
+    def get_events(self, calender_id: Optional[str] = CALENDER_ID, result_num: int = 10) -> List[Dict[str, Any]]:
+        now = datetime.now()
+        now_time_text = datetime(
             year=now.year,
             month=now.month,
             day=1
@@ -49,18 +49,17 @@ class GoogleCalnderHandler:
                                                    maxResults=result_num,
                                                    singleEvents=True,
                                                    orderBy='startTime').execute()
-        events = events_result.get('items', [])
-
-        if not events:
-            print('No upcoming events found.')
-        for event in events:
-            start = event['start'].get('dateTime', event['start'].get('date'))
-            print(start, event['summary'])
+        return events_result.get('items', [])
+        # if not events:
+        #     print('No upcoming events found.')
+        # for event in events:
+        #     start = event['start'].get('dateTime', event['start'].get('date'))
+        #     print(start, event['summary'])
 
     def add_event(self,
                   title: str,
-                  start_datetime: datetime.datetime,
-                  end_datetime: datetime.datetime,
+                  start_datetime: datetime,
+                  end_datetime: datetime,
                   location: Optional[str],
                   ) -> Dict[str, Any]:
         event_param = {
@@ -75,7 +74,7 @@ class GoogleCalnderHandler:
                 'timeZone': 'Japan',
             },
         }
-        event = self.service.events().insert(
+        event: Dict[str, Any] = self.service.events().insert(
             calendarId=CALENDER_ID,
             body=event_param
         ).execute()
@@ -83,7 +82,20 @@ class GoogleCalnderHandler:
         print("{} is successfully created".format(event))
         return event
 
+    @classmethod
+    def time_text_to_datetime(cls, time_text: str) -> datetime:
+        return datetime.strptime(time_text[:-6], "%Y-%m-%dT%H:%M:%S")
+
 
 if __name__ == '__main__':
     handler = GoogleCalnderHandler()
-    handler.get_events()
+    from pprint import pprint
+
+    events = handler.get_events()
+    pprint(events)
+
+    for event in events:
+        dt = GoogleCalnderHandler.time_text_to_datetime(
+            event['start']['dateTime']
+        )
+        print(dt)
