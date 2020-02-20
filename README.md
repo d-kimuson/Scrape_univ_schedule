@@ -11,9 +11,10 @@ BuildVersion:   19D76
 
 ## Setup
 
-### 1. .envファイルの準備
+### 1. .envファイル, credentiaals.json の準備
 
-.env.sample ファイルを参考に, ログイン情報を .env ファイル に書き, src 下に設置
+- .env.sample ファイルを参考に, ログイン情報を .env ファイル に書き, src 下に設置
+- [Python Quickstart - Google Calnder API](https://developers.google.com/calendar/quickstart/python?hl=ja) から credentiaals.json をダウンロードして設置
 
 ### 2. 環境構築
 

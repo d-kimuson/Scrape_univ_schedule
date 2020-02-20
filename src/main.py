@@ -14,7 +14,7 @@ gca_handler = GoogleCalnderHandler()
 
 
 class Main:
-    def __init__(self, browser: bool = True) -> None:
+    def __init__(self, browser: bool = False) -> None:
         self.handler = ChromeHandler(browser=browser)
 
     def login(self) -> None:
@@ -126,5 +126,5 @@ class Main:
 
 
 if __name__ == "__main__":
-    main = Main(browser=True)
+    main = Main()
     main.run()
