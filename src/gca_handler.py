@@ -11,6 +11,7 @@ from settings import CALENDER_ID
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = [
+    'https://www.googleapis.com/auth/calendar.readonly',
     'https://www.googleapis.com/auth/calendar'
 ]
 
@@ -36,10 +37,17 @@ class GoogleCalnderHandler:
 
         self.service = build('calendar', 'v3', credentials=creds)
 
-    def get_events(self, result_num: int = 10) -> None:
-        now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-        events_result = self.service.events().list(calendarId='primary', timeMin=now,
-                                                   maxResults=result_num, singleEvents=True,
+    def get_events(self, calender_id: str = CALENDER_ID, result_num: int = 10) -> None:
+        now = datetime.datetime.now()
+        now_time_text = datetime.datetime(
+            year=now.year,
+            month=now.month,
+            day=1
+        ).isoformat() + 'Z'
+        events_result = self.service.events().list(calendarId=calender_id,
+                                                   timeMin=now_time_text,
+                                                   maxResults=result_num,
+                                                   singleEvents=True,
                                                    orderBy='startTime').execute()
         events = events_result.get('items', [])
 
