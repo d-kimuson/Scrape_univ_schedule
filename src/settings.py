@@ -5,9 +5,12 @@ load_dotenv()
 
 BASE_DIR = os.getcwd()
 LOGIN_URL: str = "https://csweb.u-aizu.ac.jp/campusweb/campusportal.do?locale=ja_JP"
-CHROME_DRIVER_PATH: str = os.path.join(os.path.expanduser('~'), 'Selenium', 'chromedriver')
+CHROME_DRIVER_PATH: str = os.path.join(
+    os.path.expanduser('~'), 'Selenium', 'chromedriver'
+)
 USER_NAME = os.getenv('USER_NAME')
 PASSWORD = os.getenv('PASSWORD')
+CALENDER_ID = os.getenv('CALENDER_ID')
 
 XPATHS = {
     "login_button": (
