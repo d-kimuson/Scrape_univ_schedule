@@ -5,7 +5,7 @@ import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from settings import CALENDER_ID
 
@@ -36,7 +36,7 @@ class GoogleCalnderHandler:
 
         self.service = build('calendar', 'v3', credentials=creds)
 
-    def get_events(self, result_num=10) -> None:
+    def get_events(self, result_num: int = 10) -> None:
         now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
         events_result = self.service.events().list(calendarId='primary', timeMin=now,
                                                    maxResults=result_num, singleEvents=True,
@@ -54,7 +54,7 @@ class GoogleCalnderHandler:
                   start_datetime: datetime.datetime,
                   end_datetime: datetime.datetime,
                   location: Optional[str],
-                  ):
+                  ) -> Dict[str, Any]:
         event_param = {
             'summary': '予定1',
             'location': location,
@@ -67,7 +67,7 @@ class GoogleCalnderHandler:
                 'timeZone': 'Japan',
             },
         }
-        service.events().insert(
+        return self.service.events().insert(
             calendarId=CALENDER_ID,
             body=event_param
         ).execute()
