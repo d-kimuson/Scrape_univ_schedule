@@ -37,16 +37,16 @@ class GoogleCalnderHandler:
 
         self.service = build('calendar', 'v3', credentials=creds)
 
-    def get_events(self, calender_id: Optional[str] = CALENDER_ID, result_num: int = 10) -> List[Dict[str, Any]]:
+    def get_events(self, year: Optional[int] = None, month: Optional[int] = None, day: Optional[int] = None, calender_id: Optional[str] = CALENDER_ID, max_result_num: int = 100) -> List[Dict[str, Any]]:
         now = datetime.now()
         now_time_text = datetime(
-            year=now.year,
-            month=now.month,
-            day=1
+            year=year if year is not None else now.year,
+            month=month if month is not None else now.month,
+            day=day if day is not None else 1
         ).isoformat() + 'Z'
         events_result = self.service.events().list(calendarId=calender_id,
                                                    timeMin=now_time_text,
-                                                   maxResults=result_num,
+                                                   maxResults=max_result_num,
                                                    singleEvents=True,
                                                    orderBy='startTime').execute()
         return events_result.get('items', [])
@@ -76,6 +76,12 @@ class GoogleCalnderHandler:
 
         return event
 
+    def delete_event(self, event_id: str) -> None:
+        res = self.service.events().delete(
+            calendarId=CALENDER_ID,
+            eventId=event_id
+        ).execute()
+
     @classmethod
     def time_text_to_datetime(cls, time_text: str) -> datetime:
         return datetime.strptime(time_text[:-6], "%Y-%m-%dT%H:%M:%S")
@@ -86,10 +92,6 @@ if __name__ == '__main__':
     from pprint import pprint
 
     events = handler.get_events()
-    pprint(events)
 
     for event in events:
-        dt = GoogleCalnderHandler.time_text_to_datetime(
-            event['start']['dateTime']
-        )
-        print(dt)
+        handler.delete_event(event['id'])

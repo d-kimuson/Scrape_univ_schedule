@@ -58,6 +58,7 @@ class Main:
         }
 
     def get_schedules_in_this_month(self) -> List[Schedule]:
+        # 今月のカレンダーから予定を取り出す
         table_lines = self.handler.driver \
             .find_element_by_xpath(XPATHS['schedule_table']) \
             .find_element_by_tag_name('tbody') \
@@ -65,16 +66,21 @@ class Main:
 
         schedules: List[Schedule] = []
 
+        # 週に対するループ
         for table_line in table_lines:
             link_to_each_day = table_line.find_elements_by_class_name('day')
 
+            # 日付に対するループ
             for link in link_to_each_day:
+                # ある日付の予定リストを取得し, schedules に書き出す
                 try:
                     link.find_element_by_tag_name('a').click()
                 except NoSuchElementException:
                     continue
 
                 time.sleep(5)
+                # hack: 適切な終了判定が浮かばないのでとりあえず5秒待ち実装
+                # 修正すべき
                 res_get_schedule = self.get_schedule()
                 print(res_get_schedule['date'], res_get_schedule['schedules'])
 
@@ -82,8 +88,8 @@ class Main:
 
         return schedules
 
-    def get_exist_events(self) -> List[Dict[str, Any]]:
-        events = gca_handler.get_events()
+    def get_exist_events(self, *args, **kwargs) -> List[Dict[str, Any]]:
+        events = gca_handler.get_events(*args, **kwargs)
         exist_events: List[Dict[str, Any]] = []
 
         for event in events:
@@ -97,10 +103,16 @@ class Main:
         return exist_events
 
     def update_gca_schedules(self, schedules: List[Schedule]) -> None:
+        """
+        Schedule で Google Calender を上書きするメソッド
+        """
         for schedule in schedules:
+            # 重複判定処理
+            # タイトルと, 開始時刻が同一のイベントが存在するときはスキップする
+
             is_duplicate = False
-            for event in self.get_exist_events():
-                if event['title'] == schedule.title and event['start_time'] == schedule.start_time:
+            for event in self.get_exist_events(max_result_num=100):
+                if event['title'].replace(" ", "") == schedule.title.replace(" ", "") and event['start_time'] == schedule.start_time:
                     is_duplicate = True
                     break
 
@@ -111,17 +123,20 @@ class Main:
                     end_datetime=schedule.end_time,
                     location=schedule.place
                 )
-                print("{} を作成しました")
+                print("{} を作成しました".format(schedule))
             else:
                 print("{} は重複しているのでスキップしました.".format(schedule))
 
     def run(self) -> None:
+        # 起点メソッド
         try:
             self.login()
             schedules = self.get_schedules_in_this_month()
         finally:
+            # Chronium を終了する
             self.handler.fin()
 
+        # 全ての今月の予定が入った schedules を Google Calender に追加
         self.update_gca_schedules(schedules)
 
 

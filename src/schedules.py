@@ -107,7 +107,10 @@ class UnivClass(Schedule):
             )
 
     def __repr__(self) -> str:
-        return "{}-{}. {}".format(self.start_term, self.end_term, self.title)
+        if isinstance(self.end_term, int):
+            return "{}-{}. {}".format(self.start_term, self.end_term, self.title)
+        else:
+            return "{}. {}".format(self.start_term, self.title)
 
     __str__ = __repr__
 
@@ -126,6 +129,11 @@ def parse_schedule_text(schedule_text: str, date: str) -> Schedule:
 
     if ":" in schedule_text:
         schedule_text = schedule_text.replace(" ", "")
+        """
+        time_text: 5-6限 or 7限
+        place_text: M5
+        title_text: XX00 ほげほげ論
+        """
         time_text, place_text, title_text = schedule_text.split(":")
 
         ranged_match = range_pattern.search(time_text)
