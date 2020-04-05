@@ -127,6 +127,17 @@ class Main:
             else:
                 print("{} は重複しているのでスキップしました.".format(schedule))
 
+    def reset_month_schedules(self, year: int, month: int) -> None:
+        events = self.handler.get_events(year=year, month=month)
+
+        for event in events:
+            event_year, event_month, _ = event['start']['dateTime'].split('-')
+            if int(event_year) == year and int(event_month) == month:
+                handler.delete_event(event['id'])
+            else:
+                # 次月のスケジュール => 終了
+                break
+
     def run(self) -> None:
         # 起点メソッド
         try:
