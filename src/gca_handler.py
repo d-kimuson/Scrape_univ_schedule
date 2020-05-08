@@ -44,11 +44,13 @@ class GoogleCalnderHandler:
             month=month if month is not None else now.month,
             day=day if day is not None else 1
         ).isoformat() + 'Z'
-        events_result = self.service.events().list(calendarId=calender_id,
-                                                   timeMin=now_time_text,
-                                                   maxResults=max_result_num,
-                                                   singleEvents=True,
-                                                   orderBy='startTime').execute()
+        events_result = self.service.events().list(
+            calendarId=calender_id,
+            timeMin=now_time_text,
+            maxResults=max_result_num,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
         return events_result.get('items', [])
 
     def add_event(self,

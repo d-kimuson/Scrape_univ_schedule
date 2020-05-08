@@ -1,6 +1,7 @@
 from chrome_handler import ChromeHandler
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.webelement import WebElement
 from datetime import datetime
 import time
 import re
@@ -9,6 +10,11 @@ from typing import Tuple, Dict, List, Any, Optional
 from settings import LOGIN_URL, USER_NAME, PASSWORD, XPATHS
 from gca_handler import GoogleCalnderHandler
 from schedules import TERM_TIME_TABLE, Schedule, parse_schedule_text
+
+# On Click後のLoading待ち時間
+# 良い対処が思いつかないので, とりあえず固定時間待つ
+# 回線やJSの実行速度に左右されるので, 適切に設定して走らせる
+MAX_WAIT_LOAD_TIME = 20
 
 gca_handler = GoogleCalnderHandler()
 
@@ -57,6 +63,35 @@ class Main:
             "schedules": schedules
         }
 
+    def wait_until_loading(self) -> None:
+        loading_element = self.handler.driver.find_element_by_id("wf_PTW0005100-s_20120920145137-mysch-portlet-list-loading")
+
+        for _ in range(MAX_WAIT_LOAD_TIME):
+            """
+            1. click day
+            2. loading_element が 表示される
+            3. loading_element が display=None に
+
+            1秒毎にチェックして, ローディング終了まで実行を待つ
+            """
+            if not loading_element.is_displayed():
+                return None
+
+            time.sleep(1)
+
+    def get_schedule_from_element(self, element: WebElement) -> Optional[Dict[str, Any]]:
+        try:
+            element.find_element_by_tag_name('a').click()
+        except NoSuchElementException:
+            return None
+        finally:
+            self.wait_until_loading()
+
+        schedule = self.get_schedule()
+        print(schedule['date'], schedule['schedules'])
+
+        return schedule
+
     def get_schedules_in_this_month(self) -> List[Schedule]:
         # 今月のカレンダーから予定を取り出す
         table_lines = self.handler.driver \
@@ -69,26 +104,21 @@ class Main:
         # 週に対するループ
         for table_line in table_lines:
             link_to_each_day = table_line.find_elements_by_class_name('day')
+            _ = table_line.find_elements_by_class_name('today')
+
+            if len(_) != 0:
+                link_to_each_day.append(_[0])
 
             # 日付に対するループ
             for link in link_to_each_day:
                 # ある日付の予定リストを取得し, schedules に書き出す
-                try:
-                    link.find_element_by_tag_name('a').click()
-                except NoSuchElementException:
-                    continue
-
-                time.sleep(5)
-                # hack: 適切な終了判定が浮かばないのでとりあえず5秒待ち実装
-                # 修正すべき
-                res_get_schedule = self.get_schedule()
-                print(res_get_schedule['date'], res_get_schedule['schedules'])
-
-                schedules.extend(res_get_schedule['schedules'])
+                schedule = self.get_schedule_from_element(link)
+                if isinstance(schedule, dict):
+                    schedules.extend(schedule['schedules'])
 
         return schedules
 
-    def get_exist_events(self, *args, **kwargs) -> List[Dict[str, Any]]:
+    def get_exist_events(self, *args: Any, **kwargs: Any) -> List[Dict[str, Any]]:
         events = gca_handler.get_events(*args, **kwargs)
         exist_events: List[Dict[str, Any]] = []
 
@@ -128,12 +158,12 @@ class Main:
                 print("{} は重複しているのでスキップしました.".format(schedule))
 
     def reset_month_schedules(self, year: int, month: int) -> None:
-        events = self.handler.get_events(year=year, month=month)
+        events = self.handler.driver.get_events(year=year, month=month)
 
         for event in events:
             event_year, event_month, _ = event['start']['dateTime'].split('-')
             if int(event_year) == year and int(event_month) == month:
-                handler.delete_event(event['id'])
+                self.handler.driver.delete_event(event['id'])
             else:
                 # 次月のスケジュール => 終了
                 break
@@ -152,5 +182,5 @@ class Main:
 
 
 if __name__ == "__main__":
-    main = Main()
+    main = Main(browser=False)
     main.run()
